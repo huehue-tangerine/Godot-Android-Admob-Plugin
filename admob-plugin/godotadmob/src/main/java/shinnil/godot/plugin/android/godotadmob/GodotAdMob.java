@@ -1,7 +1,5 @@
 package shinnil.godot.plugin.android.godotadmob;
 
-import static com.google.android.gms.ads.RequestConfiguration.TAG_FOR_CHILD_DIRECTED_TREATMENT_TRUE;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.os.Bundle;
@@ -14,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.collection.ArraySet;
 
 import com.google.ads.mediation.admob.AdMobAdapter;
+import com.google.android.gms.ads.AgeRestrictedTreatment;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.RequestConfiguration;
@@ -174,7 +173,7 @@ public class GodotAdMob extends GodotPlugin {
         if (this.isForChildDirectedTreatment) {
             RequestConfiguration requestConfiguration = MobileAds.getRequestConfiguration()
                     .toBuilder()
-                    .setTagForChildDirectedTreatment(TAG_FOR_CHILD_DIRECTED_TREATMENT_TRUE)
+                    .setAgeRestrictedTreatment(AgeRestrictedTreatment.CHILD)
                     .build();
             MobileAds.setRequestConfiguration(requestConfiguration);
         }
