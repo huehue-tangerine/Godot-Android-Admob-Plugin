@@ -207,6 +207,10 @@ public class GodotAdMob extends GodotPlugin {
         return adRequest;
     }
 
+    private void emitSignalOnRenderThread(final String signal, final Object... args) {
+        getGodot().runOnRenderThread(() -> emitSignal(signal, args));
+    }
+
     /**
      * To Initializes AdMob on a background thread to improve performance.
      */
@@ -216,7 +220,7 @@ public class GodotAdMob extends GodotPlugin {
             MobileAds.initialize(activity, new OnInitializationCompleteListener() {
                 @Override
                 public void onInitializationComplete(InitializationStatus initializationStatus) {
-                    emitSignal("on_admob_initialized");
+                    emitSignalOnRenderThread("on_admob_initialized");
                 }
             });
         }).start();
@@ -236,37 +240,37 @@ public class GodotAdMob extends GodotPlugin {
             rewardedVideo = new RewardedVideo(activity, new RewardedVideoListener() {
                 @Override
                 public void onRewardedVideoLoaded() {
-                    emitSignal("on_rewarded_video_ad_loaded");
+                    emitSignalOnRenderThread("on_rewarded_video_ad_loaded");
                 }
 
                 @Override
                 public void onRewardedVideoFailedToLoad(int errorCode) {
-                    emitSignal("on_rewarded_video_ad_failed_to_load", errorCode);
+                    emitSignalOnRenderThread("on_rewarded_video_ad_failed_to_load", errorCode);
                 }
 
                 @Override
                 public void onRewardedVideoOpened() {
-                    emitSignal("on_rewarded_video_ad_opened");
+                    emitSignalOnRenderThread("on_rewarded_video_ad_opened");
                 }
 
                 @Override
                 public void onRewardedVideoClosed() {
-                    emitSignal("on_rewarded_video_ad_closed");
+                    emitSignalOnRenderThread("on_rewarded_video_ad_closed");
                 }
 
                 @Override
                 public void onRewarded(String type, int amount) {
-                    emitSignal("on_rewarded", type, amount);
+                    emitSignalOnRenderThread("on_rewarded", type, amount);
                 }
 
                 @Override
                 public void onRewardedClicked() {
-                    emitSignal("on_rewarded_clicked");
+                    emitSignalOnRenderThread("on_rewarded_clicked");
                 }
 
                 @Override
                 public void onRewardedAdImpression() {
-                    emitSignal("on_rewarded_impression");
+                    emitSignalOnRenderThread("on_rewarded_impression");
                 }
             });
             rewardedVideo.load(id, getAdRequest());
@@ -300,42 +304,42 @@ public class GodotAdMob extends GodotPlugin {
             rewardedInterstitial = new RewardedInterstitial(activity, new RewardedInterstitialListener() {
                 @Override
                 public void onRewardedInterstitialLoaded() {
-                    emitSignal("on_rewarded_interstitial_ad_loaded");
+                    emitSignalOnRenderThread("on_rewarded_interstitial_ad_loaded");
                 }
 
                 @Override
                 public void onRewardedInterstitialOpened() {
-                    emitSignal("on_rewarded_interstitial_ad_opened");
+                    emitSignalOnRenderThread("on_rewarded_interstitial_ad_opened");
                 }
 
                 @Override
                 public void onRewardedInterstitialClosed() {
-                    emitSignal("on_rewarded_interstitial_ad_closed");
+                    emitSignalOnRenderThread("on_rewarded_interstitial_ad_closed");
                 }
 
                 @Override
                 public void onRewardedInterstitialFailedToLoad(int errorCode) {
-                    emitSignal("on_rewarded_interstitial_ad_failed_to_load", errorCode);
+                    emitSignalOnRenderThread("on_rewarded_interstitial_ad_failed_to_load", errorCode);
                 }
 
                 @Override
                 public void onRewardedInterstitialFailedToShow(int errorCode) {
-                    emitSignal("on_rewarded_interstitial_ad_failed_to_show", errorCode);
+                    emitSignalOnRenderThread("on_rewarded_interstitial_ad_failed_to_show", errorCode);
                 }
 
                 @Override
                 public void onRewarded(String type, int amount) {
-                    emitSignal("on_rewarded", type, amount);
+                    emitSignalOnRenderThread("on_rewarded", type, amount);
                 }
 
                 @Override
                 public void onRewardedClicked() {
-                    emitSignal("on_rewarded_clicked");
+                    emitSignalOnRenderThread("on_rewarded_clicked");
                 }
 
                 @Override
                 public void onRewardedAdImpression() {
-                    emitSignal("on_rewarded_impression");
+                    emitSignalOnRenderThread("on_rewarded_impression");
                 }
             });
             rewardedInterstitial.load(id, getAdRequest());
@@ -372,12 +376,12 @@ public class GodotAdMob extends GodotPlugin {
             banner = new Banner(id, getAdRequest(), activity, new BannerListener() {
                 @Override
                 public void onBannerLoaded() {
-                    emitSignal("on_admob_ad_loaded");
+                    emitSignalOnRenderThread("on_admob_ad_loaded");
                 }
 
                 @Override
                 public void onBannerFailedToLoad(int errorCode) {
-                    emitSignal("on_admob_banner_failed_to_load", errorCode);
+                    emitSignalOnRenderThread("on_admob_banner_failed_to_load", errorCode);
                 }
             }, isOnTop, layout, bannerSize);
         });
@@ -472,33 +476,33 @@ public class GodotAdMob extends GodotPlugin {
         activity.runOnUiThread(() -> interstitial = new Interstitial(id, getAdRequest(), activity, new InterstitialListener() {
             @Override
             public void onInterstitialLoaded() {
-                emitSignal("on_interstitial_loaded");
+                emitSignalOnRenderThread("on_interstitial_loaded");
             }
 
             @Override
             public void onInterstitialFailedToLoad(int errorCode) {
-                emitSignal("on_interstitial_failed_to_load", errorCode);
+                emitSignalOnRenderThread("on_interstitial_failed_to_load", errorCode);
             }
 
             @Override
             public void onInterstitialOpened() {
                 // Not Implemented
-                emitSignal("on_interstitial_opened");
+                emitSignalOnRenderThread("on_interstitial_opened");
             }
 
             @Override
             public void onInterstitialClosed() {
-                emitSignal("on_interstitial_close");
+                emitSignalOnRenderThread("on_interstitial_close");
             }
 
             @Override
             public void onInterstitialClicked() {
-                emitSignal("on_interstitial_clicked");
+                emitSignalOnRenderThread("on_interstitial_clicked");
             }
 
             @Override
             public void onInterstitialImpression() {
-                emitSignal("on_interstitial_impression");
+                emitSignalOnRenderThread("on_interstitial_impression");
             }
         }));
     }
@@ -526,17 +530,17 @@ public class GodotAdMob extends GodotPlugin {
                 new CMPListener() {
             @Override
             public void onConsentInfoUpdateSuccess() {
-                emitSignal("on_consent_info_update_success");
+                emitSignalOnRenderThread("on_consent_info_update_success");
             }
 
             @Override
             public void onConsentInfoUpdateFailure(int errorCode, String errorMessage) {
-                emitSignal("on_consent_info_update_failure", errorCode, errorMessage);
+                emitSignalOnRenderThread("on_consent_info_update_failure", errorCode, errorMessage);
             }
 
             @Override
             public void onAppCanRequestAds(int consentStatus) {
-                emitSignal("on_app_can_request_ads", consentStatus);
+                emitSignalOnRenderThread("on_app_can_request_ads", consentStatus);
             }
         }));
     }
