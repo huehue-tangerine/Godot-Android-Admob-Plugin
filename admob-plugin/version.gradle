@@ -1,4 +1,4 @@
-ext.pluginVersionCode = 15
-ext.pluginVersionName = "6.4.0"
-ext.playServicesAdsVersion = "25.4.0"
+ext.pluginVersionCode = 17
+ext.pluginVersionName = "7.0.1"
+ext.gmaNextGenVersion = "1.4.0"
 ext.appcompatVersion = "1.5.1"

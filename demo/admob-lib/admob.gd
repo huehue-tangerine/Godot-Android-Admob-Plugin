@@ -31,6 +31,8 @@ signal consent_app_can_request_ad(consent_status)
 
 # properties
 export var is_real:bool setget is_real_set
+# Configure with the AdMob App ID from the Google AdMob console.
+export var app_id:String = ""
 export var banner_on_top:bool = true
 # SMART_BANNER is deprecated
 export(String, "ADAPTIVE_BANNER", "SMART_BANNER", "BANNER", "LARGE_BANNER", "MEDIUM_RECTANGLE", "FULL_BANNER", "LEADERBOARD") var banner_size = "ADAPTIVE_BANNER"
@@ -104,7 +106,8 @@ func init() -> bool:
 			is_real,
 			child_directed,
 			is_personalized,
-			max_ad_content_rate
+			max_ad_content_rate,
+			app_id
 		)
 		return true
 	return false

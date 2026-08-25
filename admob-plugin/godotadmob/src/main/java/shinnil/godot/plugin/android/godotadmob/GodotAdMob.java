@@ -2,6 +2,8 @@ package shinnil.godot.plugin.android.godotadmob;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
@@ -11,13 +13,13 @@ import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
 import androidx.collection.ArraySet;
 
-import com.google.ads.mediation.admob.AdMobAdapter;
-import com.google.android.gms.ads.AgeRestrictedTreatment;
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.MobileAds;
-import com.google.android.gms.ads.RequestConfiguration;
-import com.google.android.gms.ads.initialization.InitializationStatus;
-import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
+import com.google.android.libraries.ads.mobile.sdk.MobileAds;
+import com.google.android.libraries.ads.mobile.sdk.common.AdRequest;
+import com.google.android.libraries.ads.mobile.sdk.common.AgeRestrictedTreatment;
+import com.google.android.libraries.ads.mobile.sdk.common.RequestConfiguration;
+import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig;
+import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationStatus;
+import com.google.android.libraries.ads.mobile.sdk.initialization.OnAdapterInitializationCompleteListener;
 
 import org.godotengine.godot.Godot;
 import org.godotengine.godot.GodotLib;
@@ -41,6 +43,8 @@ public class GodotAdMob extends GodotPlugin {
     private boolean isPersonalized = true; // ads are personalized by default, GDPR compliance within the European Economic Area may require you to disable personalization.
     private String maxAdContentRating = ""; // Store maxAdContentRating ("G", "PG", "T" or "MA")
     private Bundle extras = null;
+    private String appId = "";
+    private RequestConfiguration requestConfiguration;
 
     private FrameLayout layout = null; // Store the layout
 
@@ -140,13 +144,24 @@ public class GodotAdMob extends GodotPlugin {
             boolean isForChildDirectedTreatment,
             boolean isPersonalized,
             String maxAdContentRating) {
+            initWithContentRating(isReal, isForChildDirectedTreatment, isPersonalized, maxAdContentRating, appId);
+    }
+
+    @UsedByGodot
+    public void initWithContentRating(
+            boolean isReal,
+            boolean isForChildDirectedTreatment,
+            boolean isPersonalized,
+            String maxAdContentRating,
+            String appId) {
 
         this.isReal = isReal;
         this.isForChildDirectedTreatment = isForChildDirectedTreatment;
         this.isPersonalized = isPersonalized;
         this.maxAdContentRating = maxAdContentRating;
+        this.appId = appId == null ? "" : appId;
 
-        this.setRequestConfigurations();
+        this.requestConfiguration = this.createRequestConfiguration();
 
         if (!isPersonalized) {
             // https://developers.google.com/admob/android/eu-consent#forward_consent_to_the_google_mobile_ads_sdk
@@ -160,33 +175,27 @@ public class GodotAdMob extends GodotPlugin {
     }
 
 
-    private void setRequestConfigurations() {
+    private RequestConfiguration createRequestConfiguration() {
+        RequestConfiguration.Builder builder = new RequestConfiguration.Builder();
         if (!this.isReal) {
-            List<String> testDeviceIds = Arrays.asList(AdRequest.DEVICE_ID_EMULATOR, getAdMobDeviceId());
-            RequestConfiguration requestConfiguration = MobileAds.getRequestConfiguration()
-                    .toBuilder()
-                    .setTestDeviceIds(testDeviceIds)
-                    .build();
-            MobileAds.setRequestConfiguration(requestConfiguration);
+            List<String> testDeviceIds = Arrays.asList("B3EEABB8EE11C2D", getAdMobDeviceId());
+            builder.setTestDeviceIds(testDeviceIds);
         }
 
         if (this.isForChildDirectedTreatment) {
-            RequestConfiguration requestConfiguration = MobileAds.getRequestConfiguration()
-                    .toBuilder()
-                    .setAgeRestrictedTreatment(AgeRestrictedTreatment.CHILD)
-                    .build();
-            MobileAds.setRequestConfiguration(requestConfiguration);
+            builder.setAgeRestrictedTreatment(AgeRestrictedTreatment.CHILD);
         }
 
         // StringEquality false positive
         //noinspection StringEquality
-        if (this.maxAdContentRating != null && this.maxAdContentRating != "") {
-            RequestConfiguration requestConfiguration = MobileAds.getRequestConfiguration()
-                    .toBuilder()
-                    .setMaxAdContentRating(this.maxAdContentRating)
-                    .build();
-            MobileAds.setRequestConfiguration(requestConfiguration);
+        if (this.maxAdContentRating != null && !this.maxAdContentRating.isEmpty()) {
+            RequestConfiguration.MaxAdContentRating rating = RequestConfiguration.MaxAdContentRating.MAX_AD_CONTENT_RATING_G;
+            if ("PG".equals(this.maxAdContentRating)) rating = RequestConfiguration.MaxAdContentRating.MAX_AD_CONTENT_RATING_PG;
+            if ("T".equals(this.maxAdContentRating)) rating = RequestConfiguration.MaxAdContentRating.MAX_AD_CONTENT_RATING_T;
+            if ("MA".equals(this.maxAdContentRating)) rating = RequestConfiguration.MaxAdContentRating.MAX_AD_CONTENT_RATING_MA;
+            builder.setMaxAdContentRating(rating);
         }
+        return builder.build();
     }
 
 
@@ -195,11 +204,11 @@ public class GodotAdMob extends GodotPlugin {
      *
      * @return AdRequest object
      */
-    private AdRequest getAdRequest() {
-        AdRequest.Builder adBuilder = new AdRequest.Builder();
+    private AdRequest getAdRequest(final String id) {
+        AdRequest.Builder adBuilder = new AdRequest.Builder(id);
         AdRequest adRequest;
         if (!this.isForChildDirectedTreatment && extras != null) {
-            adBuilder.addNetworkExtrasBundle(AdMobAdapter.class, extras);
+            adBuilder.setGoogleExtrasBundle(extras);
         }
 
         adRequest = adBuilder.build();
@@ -216,13 +225,50 @@ public class GodotAdMob extends GodotPlugin {
     @UsedByGodot
     public void initializeOnBackgroundThread() {
         new Thread(() -> {
-            MobileAds.initialize(activity, new OnInitializationCompleteListener() {
-                @Override
-                public void onInitializationComplete(InitializationStatus initializationStatus) {
-                    emitSignalOnRenderThread("on_admob_initialized");
-                }
-            });
+            String resolvedAppId = resolveAppId();
+            if (resolvedAppId.isEmpty()) {
+                Log.e("godot", "AdMob: missing application ID. Set AdMob.app_id or add com.google.android.gms.ads.APPLICATION_ID to AndroidManifest.xml.");
+                return;
+            }
+
+            try {
+                InitializationConfig config = new InitializationConfig.Builder(resolvedAppId)
+                    .setRequestConfiguration(requestConfiguration == null
+                        ? createRequestConfiguration()
+                        : requestConfiguration)
+                    .build();
+                MobileAds.initialize(activity, config, new OnAdapterInitializationCompleteListener() {
+                    @Override
+                    public void onAdapterInitializationComplete(InitializationStatus status) {
+                        emitSignalOnRenderThread("on_admob_initialized");
+                    }
+                });
+            } catch (RuntimeException exception) {
+                Log.e("godot", "AdMob: failed to initialize GMA Next-Gen SDK", exception);
+            }
         }).start();
+    }
+
+    private String resolveAppId() {
+        if (appId != null && !appId.trim().isEmpty()) {
+            return appId.trim();
+        }
+
+        try {
+            ApplicationInfo applicationInfo = activity.getPackageManager().getApplicationInfo(
+                    activity.getPackageName(), PackageManager.GET_META_DATA);
+            Bundle metadata = applicationInfo.metaData;
+            if (metadata != null) {
+                String manifestAppId = metadata.getString("com.google.android.gms.ads.APPLICATION_ID", "");
+                if (manifestAppId != null) {
+                    return manifestAppId.trim();
+                }
+            }
+        } catch (PackageManager.NameNotFoundException exception) {
+            Log.e("godot", "AdMob: could not read application metadata", exception);
+        }
+
+        return "";
     }
 
     /* Rewarded Video
@@ -272,7 +318,7 @@ public class GodotAdMob extends GodotPlugin {
                     emitSignalOnRenderThread("on_rewarded_impression");
                 }
             });
-            rewardedVideo.load(id, getAdRequest());
+            rewardedVideo.load(id, getAdRequest(id));
         });
     }
 
@@ -341,7 +387,7 @@ public class GodotAdMob extends GodotPlugin {
                     emitSignalOnRenderThread("on_rewarded_impression");
                 }
             });
-            rewardedInterstitial.load(id, getAdRequest());
+            rewardedInterstitial.load(id, getAdRequest(id));
         });
     }
 
@@ -372,7 +418,7 @@ public class GodotAdMob extends GodotPlugin {
     public void loadBanner(final String id, final boolean isOnTop, final String bannerSize) {
         activity.runOnUiThread(() -> {
             if (banner != null) banner.remove();
-            banner = new Banner(id, getAdRequest(), activity, new BannerListener() {
+            banner = new Banner(id, getAdRequest(id), extras, activity, new BannerListener() {
                 @Override
                 public void onBannerLoaded() {
                     emitSignalOnRenderThread("on_admob_ad_loaded");
@@ -472,7 +518,7 @@ public class GodotAdMob extends GodotPlugin {
      */
     @UsedByGodot
     public void loadInterstitial(final String id) {
-        activity.runOnUiThread(() -> interstitial = new Interstitial(id, getAdRequest(), activity, new InterstitialListener() {
+        activity.runOnUiThread(() -> interstitial = new Interstitial(id, getAdRequest(id), activity, new InterstitialListener() {
             @Override
             public void onInterstitialLoaded() {
                 emitSignalOnRenderThread("on_interstitial_loaded");

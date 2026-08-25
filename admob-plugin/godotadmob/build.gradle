@@ -34,7 +34,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     compileOnly project(':godot-lib.release')
-    implementation "com.google.android.gms:play-services-ads:${playServicesAdsVersion}"
+    implementation "com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:${gmaNextGenVersion}"
 
     implementation "androidx.appcompat:appcompat:${appcompatVersion}"
     testImplementation 'junit:junit:4.13.2'
