@@ -56,6 +56,8 @@ android {
 
 Now you'll be able to add an AdMob Node to your scene (**only one node should be added per scene**)
 
+Set the `app_id` property on the AdMob node with the application ID from the AdMob console. The GMA Next-Gen SDK must be initialized before loading ads; call `initialize_on_background_thread()` and load ads after the `admob_initialized` signal.
+
 ![Searching AdMob node](images/search_node.png)
 
 Edit its properties

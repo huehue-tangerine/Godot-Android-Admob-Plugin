@@ -4,14 +4,19 @@ onready var admob = $AdMob
 onready var debug_out = $CanvasLayer/DebugOut
 
 func _ready():
+	admob.connect("admob_initialized", self, "_on_admob_initialized")
+	admob.initialize_on_background_thread()
 	
 	if not admob.ads_using_consent:
 		print('Ads without consent verification')
-		loadAds()
 	else:
 		print('Ads with consent')
 # warning-ignore:return_value_discarded
 	get_tree().connect("screen_resized", self, "_on_resize")
+
+func _on_admob_initialized() -> void:
+	if not admob.ads_using_consent:
+		loadAds()
 
 func loadAds() -> void:
 	admob.load_banner()
