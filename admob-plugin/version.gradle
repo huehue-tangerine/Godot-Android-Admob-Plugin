@@ -1,4 +1,4 @@
-ext.pluginVersionCode = 17
-ext.pluginVersionName = "7.0.1"
+ext.pluginVersionCode = 24
+ext.pluginVersionName = "7.1.2"
 ext.gmaNextGenVersion = "1.4.0"
 ext.appcompatVersion = "1.5.1"
